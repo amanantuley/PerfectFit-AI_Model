@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Capture</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>Capture Image from Webcam</h2>
+    <video id="video" width="640" height="480" autoplay></video>
+    <br>
+    <button onclick="capture()">Capture</button>
+    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+
+    <form id="form" method="POST" action="/upload_camera" enctype="multipart/form-data">
+        <input type="hidden" name="image" id="imageData">
+    </form>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const imageDataInput = document.getElementById('imageData');
+        const form = document.getElementById('form');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+            });
+
+        function capture() {
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/png');
+            imageDataInput.value = dataUrl;
+            form.submit();
+        }
+    </script>
+</body>
+</html>

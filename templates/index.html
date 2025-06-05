@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Image</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>Upload an Image for Measurement</h2>
+
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="file" name="photo" required>
+        <input type="submit" value="Upload Image">
+    </form>
+
+    <a href="/camera">Capture From Webcam</a>
+</body>
+</html>
