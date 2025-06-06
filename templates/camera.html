@@ -1,38 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Camera Capture</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Camera Capture - Tailoring</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f0f5;
+    text-align: center;
+    padding: 20px;
+  }
+  video {
+    border: 3px solid #444;
+    border-radius: 8px;
+    max-width: 90vw;
+    height: auto;
+  }
+  input, button {
+    margin: 10px;
+    padding: 10px;
+    font-size: 1rem;
+  }
+</style>
 </head>
 <body>
-    <h2>Capture Image from Webcam</h2>
-    <video id="video" width="640" height="480" autoplay></video>
-    <br>
-    <button onclick="capture()">Capture</button>
-    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
 
-    <form id="form" method="POST" action="/upload_camera" enctype="multipart/form-data">
-        <input type="hidden" name="image" id="imageData">
-    </form>
+<h1>Live Camera Measurement</h1>
 
-    <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const imageDataInput = document.getElementById('imageData');
-        const form = document.getElementById('form');
+<!-- Video to show webcam feed -->
+<video id="video" autoplay playsinline></video>
+<br />
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then((stream) => {
-                video.srcObject = stream;
-            });
+<!-- Input for user height -->
+<input id="heightInput" type="number" min="50" max="250" placeholder="Enter your height in cm" required />
+<br />
 
-        function capture() {
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/png');
-            imageDataInput.value = dataUrl;
-            form.submit();
-        }
-    </script>
+<!-- Button to capture and send -->
+<button id="captureBtn">Capture & Send Measurement</button>
+
+<script>
+  const video = document.getElementById('video');
+  const heightInput = document.getElementById('heightInput');
+  const captureBtn = document.getElementById('captureBtn');
+
+  // Access webcam
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      video.srcObject = stream;
+    })
+    .catch(err => {
+      alert("Error accessing camera: " + err.message);
+    });
+
+  captureBtn.addEventListener('click', () => {
+    if (!heightInput.value) {
+      alert('Please enter your height in cm.');
+      return;
+    }
+
+    // Create a canvas same size as video
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    // Get image as base64 string (jpeg)
+    const imageData = canvas.toDataURL('image/jpeg');
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('image', imageData);
+    formData.append('height', heightInput.value);
+
+    // Send POST request to backend
+    fetch('/upload_camera', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+      // Replace page content with response (or handle as needed)
+      document.open();
+      document.write(data);
+      document.close();
+    })
+    .catch(err => {
+      alert('Error sending image: ' + err.message);
+    });
+  });
+</script>
+
 </body>
 </html>
