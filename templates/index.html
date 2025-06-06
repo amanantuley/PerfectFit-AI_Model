@@ -1,17 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Upload Image</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <title>AI Tailoring Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(120deg, #89f7fe 0%, #66a6ff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 28px;
+            color: #333;
+        }
+
+        input[type="number"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 12px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus,
+        input[type="file"]:focus {
+            border-color: #66a6ff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(102, 166, 255, 0.5);
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: 14px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        a {
+            display: block;
+            margin-top: 20px;
+            color: #0056b3;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h2>Upload an Image for Measurement</h2>
-
-    <form action="/upload" method="POST" enctype="multipart/form-data">
-        <input type="file" name="photo" required>
-        <input type="submit" value="Upload Image">
-    </form>
-
-    <a href="/camera">Capture From Webcam</a>
+    <div class="container">
+        <h1>AI Tailoring Service</h1>
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <input type="number" name="height" placeholder="Enter your height (cm)" required>
+            <input type="file" name="photo" accept="image/*" required>
+            <button type="submit">Upload Photo</button>
+        </form>
+        <a href="/camera">📷 Use Live Camera Instead</a>
+    </div>
 </body>
 </html>
