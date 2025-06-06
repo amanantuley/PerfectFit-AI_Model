@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Measurement Results</title>
+    <style>
+        body {
+            background-color: #f9f9f9;
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            padding: 30px;
+        }
+        h2 {
+            color: #444;
+            margin-bottom: 30px;
+        }
+        .result-box {
+            background-color: white;
+            display: inline-block;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        p {
+            font-size: 18px;
+            color: #555;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h2>Your Measurements</h2>
+    <div class="result-box">
+        <p><strong>Shoulder Width:</strong> {{ measurements.shoulder_width_cm }} cm</p>
+        <p><strong>Hip Width:</strong> {{ measurements.hip_width_cm }} cm</p>
+        <p><strong>Torso Height:</strong> {{ measurements.torso_height_cm }} cm</p>
+    </div>
+    <br><br>
+    <a href="/">Go Back</a>
+</body>
+</html>
