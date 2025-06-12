@@ -32,17 +32,33 @@ def get_voice_input():
     except sr.RequestError:
         return "API unavailable"
 
+# Convert pixels to cm using shoulder as a scale reference
+def scale_to_cm(pixel_value, shoulder_pixel_width):
+    average_shoulder_cm = 45.0  # average adult shoulder width in cm
+    scale = average_shoulder_cm / shoulder_pixel_width
+    return round(pixel_value * scale, 2)
+
 # Measurement logic
 def get_measurements(landmarks, h, w):
     def get_point(landmark):
         return np.array([landmarks[landmark].x * w, landmarks[landmark].y * h])
-    shoulder = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_SHOULDER) - get_point(mp_pose.PoseLandmark.RIGHT_SHOULDER))
-    hip = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_HIP) - get_point(mp_pose.PoseLandmark.RIGHT_HIP))
-    height = np.linalg.norm(get_point(mp_pose.PoseLandmark.NOSE) - get_point(mp_pose.PoseLandmark.RIGHT_ANKLE))
+
+    shoulder_px = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_SHOULDER) -
+                                 get_point(mp_pose.PoseLandmark.RIGHT_SHOULDER))
+    hip_px = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_HIP) -
+                            get_point(mp_pose.PoseLandmark.RIGHT_HIP))
+    height_px = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_SHOULDER) -
+                               get_point(mp_pose.PoseLandmark.LEFT_ANKLE))
+
+    # Convert to cm
+    shoulder_cm = round(shoulder_px * (45.0 / shoulder_px), 2)
+    hip_cm = scale_to_cm(hip_px, shoulder_px)
+    height_cm = scale_to_cm(height_px, shoulder_px)
+
     return {
-        "shoulder_width_cm": round(shoulder / 10, 2),
-        "hip_width_cm": round(hip / 10, 2),
-        "height_cm": round(height / 10, 2)
+        "shoulder_width_cm": shoulder_cm,
+        "hip_width_cm": hip_cm,
+        "height_cm": height_cm
     }
 
 # Save to CSV
