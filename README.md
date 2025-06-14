@@ -1,5 +1,4 @@
 
-
 # 👗 PerfectFit\_Ai – AI-Powered Tailoring Service 👕
 
 Welcome to **PerfectFit\_Ai** – an intelligent, AI-driven platform that revolutionizes the tailoring experience by predicting accurate body measurements through camera input or photos. 📸✨
@@ -49,14 +48,20 @@ Welcome to **PerfectFit\_Ai** – an intelligent, AI-driven platform that revolu
 
 ## 📁 Project Structure
 
-```
+```plaintext
 PerfectFit_Ai/
-├── app.py                  # Flask backend
-├── templates/              # HTML templates
-├── static/                 # CSS, JS, image assets
-├── model/                  # Trained AI models
-├── data/                   # Sample measurement data
-└── README.md
+│
+├── __pycache__/               # Compiled bytecode cache
+├── static/                    # CSS and static assets (e.g., style.css)
+├── templates/                 # HTML templates for frontend
+├── uploads/                   # Uploaded user images
+│
+├── LICENSE                    # Project license
+├── README.md                  # Project documentation
+├── ai.py                      # AI model logic for measurement prediction
+├── app.py                     # Flask application entry point
+├── measurements.db            # SQLite database for storing measurements
+├── measurements_data.csv      # Sample measurement data
 ```
 
 ---
@@ -72,23 +77,30 @@ PerfectFit_Ai/
 
 ## 🛠️ Setup Instructions
 
-1. Clone the repo:
+1. **Clone the repo:**
 
    ```bash
    git clone https://github.com/your-username/PerfectFit_Ai.git
    cd PerfectFit_Ai
    ```
-2. Install dependencies:
+
+2. **Install dependencies:**
 
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the app:
+
+3. **Run the app:**
 
    ```bash
    python app.py
    ```
-4. Open `http://127.0.0.1:5000` in your browser.
+
+4. **Open in browser:**
+
+   ```
+   http://127.0.0.1:5000
+   ```
 
 ---
 
@@ -112,3 +124,4 @@ For feedback or collaboration:
 
 If you like this project, give it a ⭐ on GitHub and share it with others!
 Let’s make the world a better-fitted place. 👔👗
+
