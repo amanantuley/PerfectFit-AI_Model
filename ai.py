@@ -1,165 +1,73 @@
+# ai.py
 import cv2
 import mediapipe as mp
 import numpy as np
-import speech_recognition as sr
-import csv
-import os
-import sqlite3
-from datetime import datetime
+import math
 
-# Setup
+# Initialize MediaPipe Pose
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose()
-mp_drawing = mp.solutions.drawing_utils
-recognizer = sr.Recognizer()
+pose = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
 
-CSV_FILE = "measurements_data.csv"
-IMAGE_DIR = "uploads"
-DB_FILE = "measurements.db"
-os.makedirs(IMAGE_DIR, exist_ok=True)
+def measurements(image_path):
+    """
+    Calculates body measurements from a single full-body image.
+    Returns measurements in centimeters.
+    """
 
-# Get voice input
-def get_voice_input():
-    print("Please say your name for verification...")
-    with sr.Microphone() as source:
-        audio = recognizer.listen(source, timeout=5)
-    try:
-        name = recognizer.recognize_google(audio)
-        print(f"Detected Name: {name}")
-        return name
-    except sr.UnknownValueError:
-        return "Could not understand the name"
-    except sr.RequestError:
-        return "API unavailable"
+    # Load image
+    image = cv2.imread(image_path)
+    if image is None:
+        raise FileNotFoundError(f"Image not found: {image_path}")
 
-# Convert pixels to cm using shoulder as a scale reference
-def scale_to_cm(pixel_value, shoulder_pixel_width):
-    average_shoulder_cm = 45.0  # average adult shoulder width in cm
-    scale = average_shoulder_cm / shoulder_pixel_width
-    return round(pixel_value * scale, 2)
-
-# Measurement logic
-def get_measurements(landmarks, h, w):
-    def get_point(landmark):
-        return np.array([landmarks[landmark].x * w, landmarks[landmark].y * h])
-
-    shoulder_px = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_SHOULDER) -
-                                 get_point(mp_pose.PoseLandmark.RIGHT_SHOULDER))
-    hip_px = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_HIP) -
-                            get_point(mp_pose.PoseLandmark.RIGHT_HIP))
-    height_px = np.linalg.norm(get_point(mp_pose.PoseLandmark.LEFT_SHOULDER) -
-                               get_point(mp_pose.PoseLandmark.LEFT_ANKLE))
-
-    # Convert to cm
-    shoulder_cm = round(shoulder_px * (45.0 / shoulder_px), 2)
-    hip_cm = scale_to_cm(hip_px, shoulder_px)
-    height_cm = scale_to_cm(height_px, shoulder_px)
-
-    return {
-        "shoulder_width_cm": shoulder_cm,
-        "hip_width_cm": hip_cm,
-        "height_cm": height_cm
-    }
-
-# Save to CSV
-def save_to_csv(name, measurements, image_file):
-    file_exists = os.path.isfile(CSV_FILE)
-    with open(CSV_FILE, 'a', newline='') as file:
-        writer = csv.writer(file)
-        if not file_exists:
-            writer.writerow(["Name", "Shoulder(cm)", "Hip(cm)", "Height(cm)", "Image File", "Timestamp"])
-        writer.writerow([
-            name,
-            measurements["shoulder_width_cm"],
-            measurements["hip_width_cm"],
-            measurements["height_cm"],
-            image_file,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ])
-
-# Save to SQLite
-def save_to_db(name, measurements, image_file):
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS measurements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            shoulder REAL,
-            hip REAL,
-            height REAL,
-            image TEXT,
-            timestamp TEXT
-        )
-    ''')
-    cursor.execute('''
-        INSERT INTO measurements (name, shoulder, hip, height, image, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (
-        name,
-        measurements["shoulder_width_cm"],
-        measurements["hip_width_cm"],
-        measurements["height_cm"],
-        image_file,
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    ))
-    conn.commit()
-    conn.close()
-
-# Camera loop
-cap = cv2.VideoCapture(0)
-verified = False
-saved = False
-
-while cap.isOpened():
-    success, frame = cap.read()
-    if not success:
-        break
-
-    h, w, _ = frame.shape
-    image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    h, w, _ = image.shape
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = pose.process(image_rgb)
 
-    if results.pose_landmarks:
-        mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-        landmarks = results.pose_landmarks.landmark
-        measurements = get_measurements(landmarks, h, w)
+    if not results.pose_landmarks:
+        raise ValueError("No person detected in the image.")
 
-        y_pos = 30
-        for key, value in measurements.items():
-            cv2.putText(frame, f"{key}: {value} cm", (10, y_pos),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            y_pos += 30
+    landmarks = results.pose_landmarks.landmark
 
-        if not verified:
-            name = get_voice_input()
-            if name.lower() not in ["could not understand the name", "api unavailable"]:
-                verified = True
+    def pixel_distance(p1, p2):
+        """Euclidean distance between two landmarks in pixels."""
+        x1, y1 = int(landmarks[p1].x * w), int(landmarks[p1].y * h)
+        x2, y2 = int(landmarks[p2].x * w), int(landmarks[p2].y * h)
+        return math.dist((x1, y1), (x2, y2))
 
-                # Save image
-                image_filename = f"{name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-                image_path = os.path.join(IMAGE_DIR, image_filename)
-                cv2.imwrite(image_path, frame)
+    # Reference: Shoulder width in pixels
+    shoulder_width_px = pixel_distance(mp_pose.PoseLandmark.LEFT_SHOULDER,
+                                       mp_pose.PoseLandmark.RIGHT_SHOULDER)
+    if shoulder_width_px == 0:
+        raise ValueError("Invalid shoulder width detected.")
 
-                # Save to CSV and DB
-                save_to_csv(name, measurements, image_filename)
-                save_to_db(name, measurements, image_filename)
+    # Scaling — assume average shoulder width is 40 cm
+    scale_factor = 40 / shoulder_width_px
 
-                cv2.putText(frame, f"Verified: {name}", (10, y_pos + 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
-                saved = True
-            else:
-                cv2.putText(frame, "Voice not recognized!", (10, y_pos + 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    # Key measurements
+    height_px = pixel_distance(mp_pose.PoseLandmark.NOSE,
+                               mp_pose.PoseLandmark.LEFT_ANKLE)
 
-    if saved:
-        cv2.putText(frame, "Captured & Saved", (10, h - 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+    hip_width_px = pixel_distance(mp_pose.PoseLandmark.LEFT_HIP,
+                                  mp_pose.PoseLandmark.RIGHT_HIP)
 
-    cv2.imshow('AI Tailor - Live Measurement + Storage', frame)
+    neck_width_px = pixel_distance(mp_pose.PoseLandmark.LEFT_SHOULDER,
+                                   mp_pose.PoseLandmark.RIGHT_SHOULDER) * 0.3  # approx. neck width
+    neck_circumference_cm = (neck_width_px * scale_factor) * math.pi
 
-    if cv2.waitKey(5) & 0xFF == 27:  # ESC
-        break
+    arm_length_px = pixel_distance(mp_pose.PoseLandmark.LEFT_SHOULDER,
+                                   mp_pose.PoseLandmark.LEFT_WRIST)
 
-cap.release()
-cv2.destroyAllWindows()
+    leg_length_px = pixel_distance(mp_pose.PoseLandmark.LEFT_HIP,
+                                   mp_pose.PoseLandmark.LEFT_ANKLE)
+
+    # Convert to cm
+    measurements_cm = {
+        "Height": round(height_px * scale_factor, 1),
+        "Neck Circumference": round(neck_circumference_cm, 1),
+        "Shoulder Width": round(shoulder_width_px * scale_factor, 1),
+        "Hip Width": round(hip_width_px * scale_factor, 1),
+        "Arm Length": round(arm_length_px * scale_factor, 1),
+        "Leg Length": round(leg_length_px * scale_factor, 1)
+    }
+
+    return measurements_cm
