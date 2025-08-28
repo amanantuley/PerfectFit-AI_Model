@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import speech_recognition as sr
 import csv
 import os
 from datetime import datetime
@@ -11,23 +10,20 @@ import math
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 mp_drawing = mp.solutions.drawing_utils
-recognizer = sr.Recognizer()
 
 # File to save measurements
 CSV_FILE = "measurements_data.csv"
 IMAGE_DIR = "captured_images"
 os.makedirs(IMAGE_DIR, exist_ok=True)
 
-# Helper: Get voice input
-def get_voice_input():
-    print("Say your name for verification:")
-    with sr.Microphone() as source:
-        audio = recognizer.listen(source, timeout=5)
-    try:
-        name = recognizer.recognize_google(audio)
+# Helper: Get name input (keyboard)
+def get_name_input():
+    name = input("Enter your name for verification: ")
+    if name.strip():
         print(f"Verified Name: {name}")
-        return name
-    except:
+        return name.strip()
+    else:
+        print("No name entered.")
         return None
 
 # Helper: Extract measurements
@@ -117,7 +113,7 @@ while cap.isOpened():
                 stds = {k: np.std([f[k] for f in stable_frames]) for k in current_measurements}
                 if all(s < 1.0 for s in stds.values()):  # stable
                     if not verified:
-                        name = get_voice_input()
+                        name = get_name_input()
                         if name:
                             verified = True
                             avg_measurements = {

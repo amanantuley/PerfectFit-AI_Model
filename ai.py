@@ -8,6 +8,32 @@ import math
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
 
+def get_calibration_scale(image):
+    """
+    Prompts user to click two points on the image corresponding to a real object of known length.
+    Returns the scale factor (cm per pixel).
+    """
+    import matplotlib.pyplot as plt
+    points = []
+    def onclick(event):
+        if event.xdata is not None and event.ydata is not None:
+            points.append((event.xdata, event.ydata))
+            if len(points) == 2:
+                plt.close()
+    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    plt.title("Click two points on the calibration object (e.g., ruler)")
+    cid = plt.gcf().canvas.mpl_connect('button_press_event', onclick)
+    plt.show()
+    if len(points) != 2:
+        raise ValueError("Calibration requires exactly two points.")
+    px_dist = math.dist(points[0], points[1])
+    real_length_cm = float(input("Enter the real-world length (in cm) between the two points: "))
+    if px_dist == 0:
+        raise ValueError("Calibration points are identical.")
+    scale_factor = real_length_cm / px_dist
+    print(f"Calibration complete: {scale_factor:.4f} cm per pixel.")
+    return scale_factor
+
 def measurements(image_path):
     """
     Calculates body measurements from a single full-body image.
@@ -34,29 +60,23 @@ def measurements(image_path):
         x2, y2 = int(landmarks[p2].x * w), int(landmarks[p2].y * h)
         return math.dist((x1, y1), (x2, y2))
 
-    # Reference: Shoulder width in pixels
-    shoulder_width_px = pixel_distance(mp_pose.PoseLandmark.LEFT_SHOULDER,
-                                       mp_pose.PoseLandmark.RIGHT_SHOULDER)
-    if shoulder_width_px == 0:
-        raise ValueError("Invalid shoulder width detected.")
 
-    # Scaling — assume average shoulder width is 40 cm
-    scale_factor = 40 / shoulder_width_px
+    # Calibration step for accurate scaling
+    print("Calibration: Please ensure a real object of known length (e.g., ruler, A4 paper) is visible in the image.")
+    scale_factor = get_calibration_scale(image)
+
 
     # Key measurements
     height_px = pixel_distance(mp_pose.PoseLandmark.NOSE,
                                mp_pose.PoseLandmark.LEFT_ANKLE)
-
     hip_width_px = pixel_distance(mp_pose.PoseLandmark.LEFT_HIP,
                                   mp_pose.PoseLandmark.RIGHT_HIP)
-
-    neck_width_px = pixel_distance(mp_pose.PoseLandmark.LEFT_SHOULDER,
-                                   mp_pose.PoseLandmark.RIGHT_SHOULDER) * 0.3  # approx. neck width
+    shoulder_width_px = pixel_distance(mp_pose.PoseLandmark.LEFT_SHOULDER,
+                                       mp_pose.PoseLandmark.RIGHT_SHOULDER)
+    neck_width_px = shoulder_width_px * 0.3  # approx. neck width
     neck_circumference_cm = (neck_width_px * scale_factor) * math.pi
-
     arm_length_px = pixel_distance(mp_pose.PoseLandmark.LEFT_SHOULDER,
                                    mp_pose.PoseLandmark.LEFT_WRIST)
-
     leg_length_px = pixel_distance(mp_pose.PoseLandmark.LEFT_HIP,
                                    mp_pose.PoseLandmark.LEFT_ANKLE)
 
